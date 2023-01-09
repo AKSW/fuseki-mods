@@ -31,9 +31,6 @@ import org.apache.jena.web.HttpSC;
 
 public class RunFModShiro {
 
-    // Sort out "FUSEKI_BASE", "FUSEKI_HOME"
-    // SHIRO_FILE environment variable
-
     public static void main(String[] args) {
         try {
             main2();
@@ -49,6 +46,7 @@ public class RunFModShiro {
         FusekiLogging.setLogging();
         // TODO Proper append path
         System.setProperty("FUSEKI_BASE", "src/test/files/");
+        //System.setProperty("FUSEKI_SHIRO", "disabled");
 
         FusekiServer server = FusekiServer.create()
                 .port(0)

@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.servlet.Filter;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FMod_Shiro implements FusekiModule {
     // Assumes the whole system is "Shiro".
+    // No setup?
 
     public static final Logger shiroConfigLog = LoggerFactory.getLogger(Fuseki.PATH+".Shiro");
 
@@ -67,9 +69,11 @@ public class FMod_Shiro implements FusekiModule {
     public String name() { return "ModShiro"; }
 
     @Override public void prepare(FusekiServer.Builder serverBuilder, Set<String> datasetNames, Model configModel) {
-        Filter filter = new FusekiShiroFilter();
-        // This is a "before" filter.
-        serverBuilder.addFilter("/*", filter);
+        if ( ! Objects.equals("disabled", Lib.getenv("FUSEKI_SHIRO") ) ) {
+            Filter filter = new FusekiShiroFilter();
+            // This is a "before" filter.
+            serverBuilder.addFilter("/*", filter);
+        }
     }
 
     /**
@@ -78,6 +82,7 @@ public class FMod_Shiro implements FusekiModule {
      * so it needs to trigger off servlet initialization.
      */
     private class FusekiShiroFilter extends ShiroFilter {
+        boolean runnng = false;
         @Override public void init() throws Exception {
             // Can not initShiro in serverBeforeStarting()
             // and serverAfterStarting() is too late.
