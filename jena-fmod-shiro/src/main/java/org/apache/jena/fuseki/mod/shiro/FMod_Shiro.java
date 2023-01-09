@@ -88,7 +88,7 @@ public class FMod_Shiro implements FusekiModule {
 
     private static void initShiro(ServletContext servletContext) {
         List<String> locations = (iniFileLocations == null) ? defaultIniFileLocations : iniFileLocations;
-        String fusekiBase = Lib.getenv("FUSEKI_BASE");
+        String fusekiBase = System.getenv("FUSEKI_BASE");
         if ( fusekiBase != null ) {
             Path pathShiroIni = Paths.get(fusekiBase).resolve("shiro.ini");
             if ( ! Files.exists(pathShiroIni) )
