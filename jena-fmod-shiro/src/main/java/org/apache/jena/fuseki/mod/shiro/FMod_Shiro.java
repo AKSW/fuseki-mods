@@ -69,7 +69,7 @@ public class FMod_Shiro implements FusekiModule {
     public String name() { return "ModShiro"; }
 
     @Override public void prepare(FusekiServer.Builder serverBuilder, Set<String> datasetNames, Model configModel) {
-        if ( ! Objects.equals("disabled", Lib.getenv("FUSEKI_SHIRO") ) ) {
+        if ( ! Objects.equals("disabled", System.getenv("FUSEKI_SHIRO") ) ) {
             Filter filter = new FusekiShiroFilter();
             // This is a "before" filter.
             serverBuilder.addFilter("/*", filter);
