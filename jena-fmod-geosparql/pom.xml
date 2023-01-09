@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.apache.jena.fuseki</groupId>
+        <artifactId>jena-fmod</artifactId>
+        <version>0.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>jena-fmod-geosparql</artifactId>
+
+    <description>GeoSPARQL Fuseki Module</description>
+
+    <properties>
+        <automatic.module.name>org.apache.jena.fuseki.geosparql</automatic.module.name>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-geosparql</artifactId>
+            <version>${ver.jena}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-fuseki-main</artifactId>
+            <version>${ver.jena}</version>
+            <scope>provided</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+
+                    <artifactSet>
+                        <!-- Dependencies
+                        <includes>
+                          <include>...</include>
+                        </includes>
+                        -->
+                        <excludes>
+                            <exclude>org.apache.jena:jena-fuseki-main</exclude>
+                        </excludes>
+                    </artifactSet>
+
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

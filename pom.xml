@@ -57,6 +57,7 @@
     <module>jena-fmod-admin</module>
     <module>jena-fmod-shiro</module>
     <module>jena-fmod-prometheus</module>
+    <module>jena-fmod-geosparql</module>
   </modules>
 
   <dependencyManagement>
