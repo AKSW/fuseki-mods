@@ -18,32 +18,32 @@
 
 package org.apache.jena.fuseki.mod.admin;
 
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
-import org.apache.jena.atlas.logging.FmtLog;
+import org.apache.jena.cmd.ArgDecl;
 import org.apache.jena.cmd.ArgModuleGeneral;
+import org.apache.jena.cmd.CmdArgModule;
+import org.apache.jena.cmd.CmdGeneral;
 import org.apache.jena.fuseki.Fuseki;
+import org.apache.jena.fuseki.FusekiConfigException;
 import org.apache.jena.fuseki.build.FusekiConfig;
 import org.apache.jena.fuseki.ctl.ActionCtl;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.cmds.FusekiMain;
-import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.mgt.ActionBackup;
 import org.apache.jena.fuseki.mgt.ActionBackupList;
 import org.apache.jena.fuseki.mgt.ActionDatasets;
 import org.apache.jena.fuseki.mod.other.ActionServerStatus;
-import org.apache.jena.fuseki.server.DataAccessPoint;
+import org.apache.jena.fuseki.server.DataService;
+import org.apache.jena.fuseki.webapp.FusekiEnv;
+import org.apache.jena.fuseki.webapp.FusekiWebapp;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 
-public class FMod_Admin implements FusekiAutoModule {
-
-    private static FusekiModule singleton = new FMod_Admin();
-    public static FusekiModule get() {
-        return singleton;
-    }
+public class FMod_Admin implements FusekiModule {
 
     public FMod_Admin() {}
 
@@ -51,6 +51,19 @@ public class FMod_Admin implements FusekiAutoModule {
 
     @Override
     public void start() {
+        // Code - doesn't matter.
+        FusekiEnv.FUSEKI_HOME = null;
+
+        // --base is the static file area.
+
+        // --run=
+        FusekiEnv.FUSEKI_BASE = null;
+        // Accessible?
+        // Writable?
+
+        FusekiEnv.mode = FusekiEnv.INIT.STANDALONE;
+        FusekiWebapp.formatBaseArea();
+
         ArgModuleGeneral amg = new ArgModuleAdmin();
         FusekiMain.addArgModule(amg);
     }
@@ -62,69 +75,86 @@ public class FMod_Admin implements FusekiAutoModule {
     // [ ] Localhost - put in ActionCtl.
     // [ ] Split "datasets" into read and write functions. Or test
     // [ ] AdminAllowed:
-    // "--admin user=password" or "--admin local"
-    // "--adminArea run/"
+    //     "--admin user=password" or "--admin local"
+    //     "--adminArea run/"
 
     // [ ] Modules and server startup / command line.
-    // ArgModule!
+    //     ArgModule!
+
+    public static class ArgModuleAdmin implements ArgModuleGeneral {
+        // Add a static of "extra command"
+
+        private ArgDecl argAdmin = new ArgDecl(true, "admin");
+        private ArgDecl argAdminArea = new ArgDecl(true, "adminArea", "adminBase");
+
+        public ArgModuleAdmin() { }
+
+        @Override
+        public void processArgs(CmdArgModule cmdLine) {
+            String admin = cmdLine.getValue(argAdmin);
+            if ( admin != null ) {
+                if ( admin.equals("localhost") ) {}
+                else {
+                    String pwFile = admin;
+                }
+            }
+
+            String dirStr = cmdLine.getValue(argAdminArea);
+            Path directory = Path.of(dirStr);
+
+            if ( ! Files.isDirectory(directory) )
+                throw new FusekiConfigException("Not a directory: "+dirStr);
+
+            if ( ! Files.isWritable(directory)  )
+                throw new FusekiConfigException("Not writable: "+dirStr);
+
+            FusekiEnv.FUSEKI_BASE = directory;
+        }
+
+        @Override
+        public void registerWith(CmdGeneral cmdLine) {
+            cmdLine.add(argAdmin,     "--admin=[UserPasswordFile|localhost]", "Enable the admin module");
+            cmdLine.add(argAdminArea, "--run=DIR", "Admin state directory");
+        }
+    }
+
 
     @Override
     public String name() {
-        return "FMod Admin";
-    }
-
-    @Override
-    public int level() {
-        return 600;
+        return "Admin";
     }
 
     @Override
     public void prepare(FusekiServer.Builder builder, Set<String> datasetNames, Model configModel) {
-
-        LOG.info("Fuseki Admin load");
-
-        FusekiApp.setup();
-
-        String configDir = FusekiApp.dirConfiguration.toString();
-        List<DataAccessPoint> directoryDatabases = FusekiConfig.readConfigurationDirectory(configDir);
-
-        if ( directoryDatabases.isEmpty() )
-            FmtLog.info(Fuseki.configLog, "No databases: dir=%s", configDir);
-        else {
-            directoryDatabases.forEach(dap -> FmtLog.info(Fuseki.configLog, "Database: %s", dap.getName()));
-        }
-
-        directoryDatabases.forEach(db -> {
-            String dbName = db.getName();
-            if ( datasetNames.contains(dbName) ) {
-                Fuseki.configLog.warn(String.format("Database '%s' already added to the Fuseki server builder", dbName));
-                // ?? builder.remove(dbName);
-            }
-            builder.add(dbName, db.getDataService());
-            // ** builder.add(DataAccessPoint);
-        });
-
         // Modify the server to include the admin operations.
         ActionCtl actionBackup = new ActionBackup();
         builder
-                // // Before the Fuseki filter!
-                // .addFilter("/$/*", new LocalhostOnly())
+//            // Before the Fuseki filter!
+//            .addFilter("/$/*", new LocalhostOnly())
 
-        // ** Need POST
-                .addServlet("/$/datasets", new ActionDatasets())
-                // .addServlet("/$/stats", new ActionDatasets())
-                .addServlet("/$/server", new ActionServerStatus())
+            // Information
+            .addServlet("/$/datasets", new ActionDatasets())
+            //.addServlet("/$/stats", new ActionDatasets())
+            .addServlet("/$/server", new ActionServerStatus())
 
-                // Require admin user
-                .addServlet("/$/backup", actionBackup).addServlet("/$/backups", actionBackup)
-                .addServlet("/$/backups-list", new ActionBackupList())
+            // Require admin user
+            .addServlet("/$/backup", actionBackup)
+            .addServlet("/$/backups", actionBackup)
+            .addServlet("/$/backups-list", new ActionBackupList())
 
-                .enablePing(true)
-                .enableStats(true)
-                // Not required but helpful.
-                .enableCompact(true)
-                .enableMetrics(true)
-                .enableTasks(true);
+            // General server functions.
+            //.addServlet("/$/datasets", new ActionDatasets()) -- UI has a restricted version
+
+            .enablePing(true)
+            .enableStats(true)
+            // Not required but helpful.
+            .enableCompact(true)
+            .enableMetrics(true)
+            .enableTasks(true)
+            ;
+
+        FusekiConfig.readConfigurationDirectory(FusekiWebapp.dirConfiguration.toString())
+                .forEach((dap) -> builder.add(dap.getName(), DataService.newBuilder(dap.getDataService())));
 
         LOG.info("Fuseki Admin loaded");
     }
