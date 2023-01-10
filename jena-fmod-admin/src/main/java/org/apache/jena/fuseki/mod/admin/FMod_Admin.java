@@ -28,6 +28,7 @@ import org.apache.jena.cmd.CmdArgModule;
 import org.apache.jena.cmd.CmdGeneral;
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.FusekiConfigException;
+import org.apache.jena.fuseki.build.FusekiConfig;
 import org.apache.jena.fuseki.ctl.ActionCtl;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.cmds.FusekiMain;
@@ -36,6 +37,7 @@ import org.apache.jena.fuseki.mgt.ActionBackup;
 import org.apache.jena.fuseki.mgt.ActionBackupList;
 import org.apache.jena.fuseki.mgt.ActionDatasets;
 import org.apache.jena.fuseki.mod.other.ActionServerStatus;
+import org.apache.jena.fuseki.server.DataService;
 import org.apache.jena.fuseki.webapp.FusekiEnv;
 import org.apache.jena.fuseki.webapp.FusekiWebapp;
 import org.apache.jena.rdf.model.Model;
@@ -150,6 +152,9 @@ public class FMod_Admin implements FusekiModule {
             .enableMetrics(true)
             .enableTasks(true)
             ;
+
+        FusekiConfig.readConfigurationDirectory(FusekiWebapp.dirConfiguration.toString())
+                .forEach((dap) -> builder.add(dap.getName(), DataService.newBuilder(dap.getDataService())));
 
         LOG.info("Fuseki Admin loaded");
     }
