@@ -62,7 +62,6 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
         GraphTarget graphTarget = determineTarget(dsg, action);
         if (!graphTarget.exists())
             ServletOps.errorNotFound("No data graph: " + graphTarget.label());
-        Graph data = graphTarget.graph();
         action.end();
 
         Dataset ds = DatasetFactory.wrap(dsg);
@@ -72,7 +71,8 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
                 SpatialIndex.buildSpatialIndex(ds);
             } else {
                 SpatialIndex index = ds.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
-                if (graphTarget.isUnion()) {
+
+                if (graphTarget.isUnion()) { // union graph means we compute the whole index
                     action.log.info("(re)computing spatial index");
                     index = SpatialIndex.buildSpatialIndex(ds, index.getSrsInfo().getSrsURI(), true);
                 } else {
