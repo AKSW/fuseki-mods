@@ -20,11 +20,12 @@ package org.apache.jena.fuseki.mod.geosparql;
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
-import org.apache.jena.fuseki.server.DataAccessPointRegistry;
-import org.apache.jena.fuseki.server.Operation;
+import org.apache.jena.fuseki.server.*;
 import org.apache.jena.rdf.model.Model;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class FMod_SpatialIndexer implements FusekiModule {
 
@@ -38,7 +39,9 @@ public class FMod_SpatialIndexer implements FusekiModule {
     @Override
     public void start() {
         Fuseki.configLog.info("Add spatial indexer operation into global registry.");
-        spatialOperation = Operation.alloc("http://org.apache.jena/spatial-index-service", "spatial-indexer", "Spatial index computation service");
+        spatialOperation = Operation.alloc("http://org.apache.jena/spatial-index-service",
+                "spatial-indexer",
+                "Spatial index computation service");
     }
 
     @Override
@@ -51,6 +54,27 @@ public class FMod_SpatialIndexer implements FusekiModule {
     @Override
     public void configured(FusekiServer.Builder serverBuilder, DataAccessPointRegistry dapRegistry, Model configModel) {
         FusekiModule.super.configured(serverBuilder, dapRegistry, configModel);
+
+        List<DataAccessPoint> daps = dapRegistry.accessPoints().stream().map(dap -> {
+            Endpoint endpoint = Endpoint.create()
+                    .operation(spatialOperation)
+                    .endpointName("spatial")
+                    .build();
+            // create new DataService based on existing one with the endpoint attached
+            DataService dSrv = DataService.newBuilder(dap.getDataService()).addEndpoint(endpoint).build();
+            return new DataAccessPoint(dap.getName(), dSrv);
+        }).collect(Collectors.toList());
+
+        // "replace" each DataAccessPoint
+        daps.forEach(dap -> {
+            dapRegistry.remove(dap.getName());
+            dapRegistry.register(dap);
+        });
+    }
+
+    @Override
+    public void configDataAccessPoint(DataAccessPoint dap, Model configModel) {
+        FusekiModule.super.configDataAccessPoint(dap, configModel);
     }
 
     @Override
