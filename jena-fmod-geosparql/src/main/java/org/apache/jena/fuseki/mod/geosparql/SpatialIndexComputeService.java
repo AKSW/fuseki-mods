@@ -26,10 +26,10 @@ import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
-import org.apache.jena.graph.Graph;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.riot.WebContent;
+import org.apache.jena.riot.web.HttpNames;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.web.HttpSC;
 
@@ -45,7 +45,12 @@ import static org.apache.jena.fuseki.servlets.GraphTarget.determineTarget;
  */
 public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
 
-    public SpatialIndexComputeService() {
+    public SpatialIndexComputeService() {}
+
+    private static List<String> getGraphs(DatasetGraph dsg, HttpAction action) {
+        String[] uris = action.getRequest().getParameterValues(HttpNames.paramGraph);
+
+        return List.of(uris);
     }
 
     @Override
@@ -58,9 +63,10 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
         DatasetGraph dsg = action.getDataset();
 
         action.beginRead();
-        GraphTarget graphTarget = determineTarget(dsg, action);
-        if (!graphTarget.exists())
-            ServletOps.errorNotFound("No data graph: " + graphTarget.label());
+//        GraphTarget graphTarget = determineTarget(dsg, action);
+        List<String> graphs = getGraphs(dsg, action);
+//        if (!graphTarget.exists())
+//            ServletOps.errorNotFound("No data graph: " + graphTarget.label());
         action.end();
 
         Dataset ds = DatasetFactory.wrap(dsg);
@@ -72,13 +78,21 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
             } else {
                 action.log.info(format("[%d] spatial index: computation started", action.id));
 
-                if (graphTarget.isUnion()) { // union graph means we compute the whole index
-                    action.log.info("(re)computing spatial index");
-                    index = SpatialIndex.buildSpatialIndex(ds, index.getSrsInfo().getSrsURI(), true);
+                boolean spatialIndexPerGraph = ds.getContext().get(SpatialIndex.symSpatialIndexPerGraph, false);
+                if (!spatialIndexPerGraph) {
+                    action.log.info(format("[%d] (re)computing full spatial index as single index tree", action.id));
+                    index = SpatialIndex.buildSpatialIndex(ds, index.getSrsInfo().getSrsURI(), false);
                 } else {
-                    action.log.info("(re)computing spatial index for graph {}", graphTarget.label());
-                    index = SpatialIndex.recomputeIndexForGraphs(index, ds, List.of(graphTarget.label()));
+                    boolean isUnionGraph = graphs.contains(HttpNames.graphTargetUnion);
+                    if (isUnionGraph) { // union graph means we compute the whole index
+                        action.log.info(format("[%d] (re)computing full spatial index as separate index trees", action.id));
+                        index = SpatialIndex.buildSpatialIndex(ds, index.getSrsInfo().getSrsURI(), true);
+                    } else {
+                        action.log.info(format("[%d] (re)computing spatial index for graphs {}", action.id), graphs);
+                        index = SpatialIndex.recomputeIndexForGraphs(index, ds, graphs);
+                    }
                 }
+
                 if (commit != null) {
                     File targetFile;
                     if (spatialIndexFilePathStr != null) {
