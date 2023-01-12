@@ -52,7 +52,6 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
     protected void doPost(HttpAction action) {
 
         String spatialIndexFilePathStr = action.getRequestParameter("spatial-index-file");
-        boolean inMemory = spatialIndexFilePathStr == null;
 
         String commit = action.getRequestParameter("commit");
 
@@ -66,11 +65,12 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
 
         Dataset ds = DatasetFactory.wrap(dsg);
         try {
-            action.log.info(format("[%d] spatial index: computation started", action.id));
-            if (inMemory) {
-                SpatialIndex.buildSpatialIndex(ds);
+            SpatialIndex index = ds.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
+
+            if (index == null) { // no spatial index has been configured
+                action.log.error(format("[%d] no spatial index has been configured for the dataset", action.id));
             } else {
-                SpatialIndex index = ds.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
+                action.log.info(format("[%d] spatial index: computation started", action.id));
 
                 if (graphTarget.isUnion()) { // union graph means we compute the whole index
                     action.log.info("(re)computing spatial index");
@@ -80,10 +80,23 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
                     index = SpatialIndex.recomputeIndexForGraphs(index, ds, List.of(graphTarget.label()));
                 }
                 if (commit != null) {
-                    action.log.info("writing spatial index to disk at {}", spatialIndexFilePathStr);
-                    SpatialIndex.save(new File(spatialIndexFilePathStr), index);
+                    File targetFile;
+                    if (spatialIndexFilePathStr != null) {
+                        targetFile = new File(spatialIndexFilePathStr);
+                    } else {
+                        targetFile = index.getLocation();
+                    }
+                    if (targetFile != null) {
+                        action.log.info("writing spatial index to disk at {}", targetFile.getAbsolutePath());
+                        SpatialIndex.save(targetFile, index);
+                    } else {
+                        action.log.warn("Skipping write: Spatial index write requested, but the spatial index was configured without a file location" +
+                                " and no file param has been provided to the request neither. Skipping");
+                    }
+
                 }
             }
+
         } catch (SpatialIndexException e) {
             throw new RuntimeException(e);
         }
