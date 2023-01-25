@@ -78,7 +78,10 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
             } else {
                 action.log.info(format("[%d] spatial index: computation started", action.id));
 
+                // check if graph based index has been configured on the dataset
                 boolean spatialIndexPerGraph = ds.getContext().get(SpatialIndex.symSpatialIndexPerGraph, false);
+
+                // no graph based index
                 if (!spatialIndexPerGraph) {
                     action.log.info(format("[%d] (re)computing full spatial index as single index tree", action.id));
                     index = SpatialIndex.buildSpatialIndex(ds, index.getSrsInfo().getSrsURI(), false);
