@@ -153,6 +153,13 @@ public class FMod_Admin implements FusekiModule {
             .enableTasks(true)
             ;
 
+        Path serverConfigPath = FusekiEnv.FUSEKI_BASE.resolve(FusekiWebapp.DFT_CONFIG).toAbsolutePath();
+        if ( Files.exists(serverConfigPath) ) {
+            LOG.info("Fuseki Admin loading config " + serverConfigPath);
+            builder.parseConfigFile(serverConfigPath.toString());
+        } else {
+            LOG.warn("Fuseki Admin config not found " + serverConfigPath);
+        }
         FusekiConfig.readConfigurationDirectory(FusekiWebapp.dirConfiguration.toString())
                 .forEach((dap) -> builder.add(dap.getName(), DataService.newBuilder(dap.getDataService())));
 
