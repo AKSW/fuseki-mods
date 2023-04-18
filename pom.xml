@@ -47,7 +47,7 @@
     <ver.junit>4.13.2</ver.junit>
     <ver.slf4j>2.0.6</ver.slf4j>
     <ver.log4j2>2.20.0</ver.log4j2>
-    <ver.jena>4.8.0-SNAPSHOT</ver.jena>
+    <ver.jena>4.8.0</ver.jena>
   </properties>
 
   <modules>
@@ -121,7 +121,7 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.11.0</version>
           <configuration>
-            <release>17</release>
+            <release>11</release>
           </configuration>
         </plugin>
 
