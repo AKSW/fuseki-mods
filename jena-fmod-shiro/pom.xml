@@ -29,6 +29,7 @@
       <groupId>org.apache.jena</groupId>
       <artifactId>jena-fuseki-main</artifactId>
       <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
     
     <dependency>
@@ -61,6 +62,27 @@
   </dependencies>
 
   <build>
+    <plugins>
+      <!-- Shade to get a self-contained jar that does not contain Fuseki.-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+
+          <artifactSet>
+            <!-- Dependencies
+            <includes>
+              <include>...</include>
+            </includes>
+            -->
+            <excludes>
+              <exclude>org.apache.jena:jena-fuseki-main</exclude>
+            </excludes>
+          </artifactSet>
+
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 
 </project>
