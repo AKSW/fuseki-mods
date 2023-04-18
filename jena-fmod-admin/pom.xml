@@ -30,7 +30,7 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.jena</groupId>
+      <groupId>org.apache.jena.fuseki</groupId>
       <artifactId>jena-fmod-ui</artifactId>
       <version>${project.version}</version>
     </dependency>
