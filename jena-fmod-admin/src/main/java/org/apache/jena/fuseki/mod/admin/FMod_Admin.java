@@ -18,6 +18,8 @@
 
 package org.apache.jena.fuseki.mod.admin;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -77,6 +79,14 @@ public class FMod_Admin implements FusekiModule {
         FusekiApp.setup();
         String configDir = FusekiApp.dirConfiguration.toString();
         List<DataAccessPoint> directoryDatabases = FusekiConfig.readConfigurationDirectory(configDir);
+
+        Path serverConfigPath = FusekiApp.FUSEKI_BASE.resolve(FusekiApp.DFT_CONFIG).toAbsolutePath();
+        if ( Files.exists(serverConfigPath) ) {
+            LOG.info("Fuseki Admin loading server config " + serverConfigPath);
+            builder.parseConfigFile(serverConfigPath.toString());
+        } else {
+            LOG.warn("Fuseki Admin server config not found " + serverConfigPath);
+        }
 
         if ( directoryDatabases.isEmpty() )
             FmtLog.info(Fuseki.configLog, "No databases: dir=%s", configDir);
