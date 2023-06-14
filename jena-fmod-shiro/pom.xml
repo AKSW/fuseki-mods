@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <parent>
-    <groupId>org.apache.jena</groupId>
+    <groupId>org.apache.jena.fuseki</groupId>
     <artifactId>jena-fmod</artifactId>
     <version>0.0.0-SNAPSHOT</version>
     <relativePath>..</relativePath>
@@ -19,8 +19,8 @@
   <name>Apache Jena - Fuseki Module - Apache Shiro</name>
 
   <properties>
-    <automatic.module.name>org.apache.jena.fuseki.shiro</automatic.module.name>
-    <ver.shiro>1.10.0</ver.shiro>
+    <automatic.module.name>org.apache.jena.fuseki.mod.shiro</automatic.module.name>
+    <ver.shiro>1.11.0</ver.shiro>
   </properties>
 
   <dependencies>
@@ -63,6 +63,7 @@
 
   <build>
     <plugins>
+      <!-- Shade to get a self-contained jar that does not contain Fuseki.-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

@@ -20,12 +20,12 @@ package org.apache.jena.fuseki.mgt;
 
 import java.nio.file.Path;
 
-import org.apache.jena.fuseki.webapp.FusekiEnv;
+import org.apache.jena.fuseki.mod.admin.FusekiApp;
 
 public class Template
 {
     public static Path getPath(String templateName) {
-        return FusekiEnv.FUSEKI_BASE.resolve(templateName);
+        return FusekiApp.FUSEKI_BASE.resolve(templateName);
     }
 
     public static final String templateDir          = "templates";

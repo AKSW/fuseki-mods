@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+rm -rf lib/*
+mvn -q dependency:copy-dependencies -DoutputDirectory=lib
+

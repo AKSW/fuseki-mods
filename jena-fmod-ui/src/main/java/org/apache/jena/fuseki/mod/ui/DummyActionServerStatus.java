@@ -36,9 +36,9 @@ import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
 
 /** Description of datasets for a server */
-public class ActionServerStatus extends ActionCtl
+public class DummyActionServerStatus extends ActionCtl
 {
-    public ActionServerStatus() { super(); }
+    public DummyActionServerStatus() { super(); }
 
     @Override
     public void validate(HttpAction action) {}

@@ -18,68 +18,26 @@
 
 package dev;
 
-import org.apache.jena.atlas.lib.FileOps;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.system.FusekiLogging;
 import org.apache.jena.http.HttpOp;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphFactory;
-import org.apache.jena.sparql.exec.QueryExec;
-import org.apache.jena.sparql.exec.RowSet;
-import org.apache.jena.sparql.exec.RowSetOps;
-import org.apache.jena.sparql.exec.UpdateExec;
 import org.apache.jena.sparql.exec.http.GSP;
 import org.apache.jena.sparql.exec.http.Params;
 
-public class RunFusekiAdmin {
-    // [ ] Fuseki main+admin
-
-
+public class RunFusekiPrometheus {
     public static void main(String ... a) {
-        try {
-            main2();
-        } catch (Throwable th) {
-            th.printStackTrace();
-        }
-        finally {
-            System.exit(0);
-        }
-    }
-
-    public static void main2(String ... a) {
 
         FusekiLogging.setLogging();
-        FileOps.clearAll("run");
-
         //FusekiModules.add(new FMod_Admin());
         DatasetGraph dsg = DatasetGraphFactory.createTxnMem();
         FusekiServer server = FusekiServer.create()
                 //.verbose(true)
                 .add("/ds", dsg)
                 .port(0)
-
-//                // Run direct - less refresh issues.
-//
-//                .staticFileBase("src/main/resources/org.apache.jena.fuseki.ui")
-//
-//                // Required functions.
-//                .addServlet("/$/datasets", new ActionDatasets())
-//                .addServlet("/$/server", new ActionServerStatus())
-//                .enablePing(true)
-//                .enableStats(true)
-//                // Not required but helpful.
-//                .enableCompact(true)
-//                .enableMetrics(true)
-//                .enableTasks(true)
-//                // sparqler
-//                .addServlet("/$/validate/query",  new QueryValidator())
-//                .addServlet("/$/validate/update", new UpdateValidator())
-//                .addServlet("/$/validate/iri",    new IRIValidator())
-//                .addServlet("/$/validate/data",   new DataValidator())
-
                 .build()
                 .start();
-
 
         String HOST = "localhost";
         GSP.service("http://"+HOST+":"+server.getHttpPort()+"/ds").defaultGraph().GET();
@@ -89,12 +47,9 @@ public class RunFusekiAdmin {
 
         // Create!
         Params params = Params.create().add("dbName", "/ds2").add("dbType", "mem");
-       String baseURL = "http://"+HOST+":"+server.getHttpPort();
+        String baseURL = "http://"+HOST+":"+server.getHttpPort();
 
-        HttpOp.httpPostForm(baseURL+"/$/datasets", params);
-
-        UpdateExec.service(baseURL+"/ds2").update("INSERT DATA { <x:s> <x:p> 123 }").execute();
-        RowSet rowSet = QueryExec.service(baseURL+"/ds2").query("SELECT ?o { ?s ?p ?o }").select();
-        RowSetOps.out(rowSet);
+        String x = HttpOp.httpPostRtnString(baseURL+"/$/metrics");
+        System.out.println(x);
     }
 }

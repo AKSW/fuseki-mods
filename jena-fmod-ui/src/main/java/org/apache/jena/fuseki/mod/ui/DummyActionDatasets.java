@@ -32,7 +32,7 @@ import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
 import org.apache.jena.rdf.model.Property;
 
-public class ActionDatasets extends ActionContainerItem {
+public class DummyActionDatasets extends ActionContainerItem {
 
     static private Property pServiceName = FusekiVocab.pServiceName;
     //static private Property pStatus = FusekiVocab.pStatus;
@@ -43,7 +43,7 @@ public class ActionDatasets extends ActionContainerItem {
     private static final String tDatabaseTDB2       = "tdb2";
     private static final String tDatabaseMem        = "mem";
 
-    public ActionDatasets() { super(); }
+    public DummyActionDatasets() { super(); }
 
     @Override
     public void validate(HttpAction action) {}

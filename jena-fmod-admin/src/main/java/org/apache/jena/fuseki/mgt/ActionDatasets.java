@@ -44,6 +44,7 @@ import org.apache.jena.fuseki.build.FusekiConfig;
 import org.apache.jena.fuseki.ctl.ActionContainerItem;
 import org.apache.jena.fuseki.ctl.JsonDescription;
 import org.apache.jena.fuseki.mod.admin.FusekiAdmin;
+import org.apache.jena.fuseki.mod.admin.FusekiApp;
 import org.apache.jena.fuseki.server.DataAccessPoint;
 import org.apache.jena.fuseki.server.DataService;
 import org.apache.jena.fuseki.server.FusekiVocab;
@@ -53,7 +54,6 @@ import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
 import org.apache.jena.fuseki.system.DataUploader;
 import org.apache.jena.fuseki.system.FusekiNetLib;
-import org.apache.jena.fuseki.webapp.FusekiWebapp;
 import org.apache.jena.graph.Node;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.riot.*;
@@ -82,7 +82,7 @@ public class ActionDatasets extends ActionContainerItem {
     public ActionDatasets() { super(); }
 
     @Override
-    public void validate(HttpAction action) {}
+    public void validate(HttpAction action) { }
 
     // ---- GET : return details of dataset or datasets.
     @Override
@@ -144,7 +144,7 @@ public class ActionDatasets extends ActionContainerItem {
                 // ----
                 // Keep a persistent copy immediately.  This is not used for
                 // anything other than being "for the record".
-                systemFileCopy = FusekiWebapp.dirSystemFileArea.resolve(uuid.toString()).toString();
+                systemFileCopy = FusekiApp.dirSystemFileArea.resolve(uuid.toString()).toString();
                 try ( OutputStream outCopy = IO.openOutputFile(systemFileCopy) ) {
                     RDFDataMgr.write(outCopy, model, Lang.TURTLE);
                 }
@@ -183,8 +183,8 @@ public class ActionDatasets extends ActionContainerItem {
 
                 action.log.info(format("[%d] Create database : name = %s", action.id, datasetPath));
 
-                configFile = FusekiWebapp.generateConfigurationFilename(datasetPath);
-                List<String> existing = FusekiWebapp.existingConfigurationFile(datasetPath);
+                configFile = FusekiApp.generateConfigurationFilename(datasetPath);
+                List<String> existing = FusekiApp.existingConfigurationFile(datasetPath);
                 if ( ! existing.isEmpty() )
                     ServletOps.error(HttpSC.CONFLICT_409, "Configuration file for '"+datasetPath+"' already exists");
 
@@ -214,7 +214,7 @@ public class ActionDatasets extends ActionContainerItem {
                 action.getDataAccessPointRegistry().register(dataAccessPoint);
                 action.setResponseContentType(WebContent.contentTypeTextPlain);
                 ServletOps.success(action);
-
+                succeeded = true;
             } catch (IOException ex) { IO.exception(ex); }
             finally {
                 if ( ! succeeded ) {
@@ -347,7 +347,7 @@ public class ActionDatasets extends ActionContainerItem {
 
                 // Find the configuration.
                 String filename = name.startsWith("/") ? name.substring(1) : name;
-                List<String> configurationFiles = FusekiWebapp.existingConfigurationFile(filename);
+                List<String> configurationFiles = FusekiApp.existingConfigurationFile(filename);
 
                 if ( configurationFiles.isEmpty() ) {
                     // ---- Unmanaged
@@ -392,7 +392,7 @@ public class ActionDatasets extends ActionContainerItem {
                     // Delete databases created by the UI, or the admin operation, which are
                     // in predictable, unshared location on disk.
                     // There may not be any database files, the in-memory case.
-                    Path pDatabase = FusekiWebapp.dirDatabases.resolve(filename);
+                    Path pDatabase = FusekiApp.dirDatabases.resolve(filename);
                     if ( Files.exists(pDatabase)) {
                         try {
                             if ( Files.isSymbolicLink(pDatabase)) {
@@ -440,7 +440,7 @@ public class ActionDatasets extends ActionContainerItem {
             params.put(Template.NAME, dbName.substring(1));
         else
             params.put(Template.NAME, dbName);
-        FusekiWebapp.addGlobals(params);
+        FusekiApp.addGlobals(params);
 
         //action.log.info(format("[%d] Create database : name = %s, type = %s", action.id, dbName, dbType ));
 

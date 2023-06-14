@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.jena.fuseki.webapp;
+package org.apache.jena.fuseki.mod.admin;
 
 import static java.lang.String.format;
+import static org.apache.jena.atlas.lib.Lib.getenv;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,54 +28,36 @@ import java.io.StringReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-import org.apache.jena.atlas.io.IO;
+import org.apache.jena.atlas.RuntimeIOException;
+import org.apache.jena.atlas.io.IOX;
 import org.apache.jena.atlas.lib.FileOps;
 import org.apache.jena.atlas.lib.InternalErrorException;
+import org.apache.jena.atlas.lib.Lib;
+import org.apache.jena.atlas.logging.FmtLog;
 import org.apache.jena.cmd.CmdException;
 import org.apache.jena.dboe.sys.Names;
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.FusekiConfigException;
 import org.apache.jena.fuseki.build.DatasetDescriptionMap;
 import org.apache.jena.fuseki.build.FusekiConfig;
-import org.apache.jena.fuseki.cmd.FusekiArgs;
 import org.apache.jena.fuseki.mgt.Template;
 import org.apache.jena.fuseki.mgt.TemplateFunctions;
 import org.apache.jena.fuseki.server.DataAccessPoint;
-import org.apache.jena.fuseki.server.DataAccessPointRegistry;
 import org.apache.jena.fuseki.server.DataService;
 import org.apache.jena.fuseki.server.FusekiVocab;
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
-import org.apache.jena.graph.Graph;
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.rdfs.RDFSFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.assembler.AssemblerUtils;
 
-public class FusekiWebapp
-{
-    // Initialization of FUSEKI_HOME and FUSEKI_BASE is done in FusekiEnv.setEnvironment()
-    // so that the code is independent of any logging.  FusekiLogging can use
-    // initialized values of FUSEKI_BASE while looking for log4j configuration.
-
-    /**
-     * FUSEKI_HOME
-     * Root of the Fuseki installation for fixed files.
-     * This may be null (e.g. running inside a web application container)
-     *
-     * FUSEKI_BASE
-     * Root of the varying files in this deployment. Often $FUSEKI_HOME/run.
-     * This is not null - it may be /etc/fuseki, which must be writable.
-     */
-
+public class FusekiApp {
     // Relative names of directories in the FUSEKI_BASE area.
-    public static final String     runArea                  = FusekiEnv.ENV_runArea;
     public static final String     databasesLocationBase    = "databases";
     // Place to put Lucene text and spatial indexes.
     //private static final String        databaseIndexesDir       = "indexes";
@@ -82,12 +65,9 @@ public class FusekiWebapp
     public static final String     backupDirNameBase        = "backups";
     public static final String     configDirNameBase        = "configuration";
     public static final String     logsNameBase             = "logs";
-    //public static final String     systemDatabaseNameBase   = "system";
     public static final String     systemFileAreaBase       = "system_files";
     public static final String     templatesNameBase        = "templates";
-    // This name is in web.xml as well.
     public static final String     DFT_SHIRO_INI            = "shiro.ini";
-    // In FUSEKI_BASE
     public static final String     DFT_CONFIG               = "config.ttl";
 
     /** Directory for TDB databases - this is known to the assembler templates */
@@ -115,65 +95,87 @@ public class FusekiWebapp
     // Marks the end of successful initialization.
     /*package*/static boolean serverInitialized  = false;
 
-    public /*package*/ synchronized static void formatBaseArea() {
-        if ( initialized )
-            return;
-        initialized = true;
-        try {
-            FusekiEnv.setEnvironment();
-            Path FUSEKI_HOME = FusekiEnv.FUSEKI_HOME;
-            Path FUSEKI_BASE = FusekiEnv.FUSEKI_BASE;
+//    /**
+//     * Root of the Fuseki installation for fixed files.
+//     * This may be null (e.g. running inside a web application container)
+//     */
+//    public static Path FUSEKI_HOME = null;
 
-            Fuseki.init();
-            Fuseki.configLog.info("FUSEKI_HOME="+ ((FUSEKI_HOME==null) ? "unset" : FUSEKI_HOME.toString()));
-            Fuseki.configLog.info("FUSEKI_BASE="+FUSEKI_BASE.toString());
+    /**
+     * Root of the varying files in this deployment. Often $PWD/run.
+     * This must be writable.
+     */
+    public static Path FUSEKI_BASE = null;
 
-            // ----  Check FUSEKI_HOME and FUSEKI_BASE
-            // If FUSEKI_HOME exists, it may be FUSEKI_BASE.
+    // Default - "run" in the current directory.
+    public static final String dftFusekiBase = "run";
 
-            if ( FUSEKI_HOME != null ) {
-                if ( ! Files.isDirectory(FUSEKI_HOME) )
-                    throw new FusekiConfigException("FUSEKI_HOME is not a directory: "+FUSEKI_HOME);
-                if ( ! Files.isReadable(FUSEKI_HOME) )
-                    throw new FusekiConfigException("FUSEKI_HOME is not readable: "+FUSEKI_HOME);
-            }
-
-            if ( Files.exists(FUSEKI_BASE) ) {
-                if ( ! Files.isDirectory(FUSEKI_BASE) )
-                    throw new FusekiConfigException("FUSEKI_BASE is not a directory: "+FUSEKI_BASE);
-                if ( ! Files.isWritable(FUSEKI_BASE) )
-                    throw new FusekiConfigException("FUSEKI_BASE is not writable: "+FUSEKI_BASE);
-            } else {
-                ensureDir(FUSEKI_BASE);
-            }
-
-            // Ensure FUSEKI_BASE has the assumed directories.
-            dirTemplates        = writeableDirectory(FUSEKI_BASE, templatesNameBase);
-            dirDatabases        = writeableDirectory(FUSEKI_BASE, databasesLocationBase);
-            dirBackups          = writeableDirectory(FUSEKI_BASE, backupDirNameBase);
-            dirConfiguration    = writeableDirectory(FUSEKI_BASE, configDirNameBase);
-            dirLogs             = writeableDirectory(FUSEKI_BASE, logsNameBase);
-//            dirSystemDatabase   = writeableDirectory(FUSEKI_BASE, systemDatabaseNameBase);
-            dirSystemFileArea   = writeableDirectory(FUSEKI_BASE, systemFileAreaBase);
-            //Possible intercept point
-
-            // ---- Initialize with files.
-
-            if ( Files.isRegularFile(FUSEKI_BASE) )
-                throw new FusekiConfigException("FUSEKI_BASE exists but is a file");
-
-//            // Copy missing files into FUSEKI_BASE
-//            copyFileIfMissing(null, DFT_SHIRO_INI, FUSEKI_BASE);
-//            copyFileIfMissing(null, DFT_CONFIG, FUSEKI_BASE);
-            for ( String n : Template.templateNames ) {
-                copyFileIfMissing(null, n, FUSEKI_BASE);
-            }
-
-            serverInitialized = true;
-        } catch (RuntimeException ex) {
-            Fuseki.serverLog.error("Exception in server initialization", ex);
-            throw ex;
+    static void setEnvironment() {
+        if ( FUSEKI_BASE == null ) {
+            String x2 = getenv("FUSEKI_BASE");
+            if ( x2 == null )
+                x2 = dftFusekiBase;
+            FUSEKI_BASE = Path.of(x2);
         }
+
+        FmtLog.info(Fuseki.configLog, "FusekiEnv: FUSEKI_BASE = %s", FUSEKI_BASE);
+        if ( Files.isRegularFile(FUSEKI_BASE) )
+            throw new FusekiConfigException("FUSEKI_BASE exists but is a file");
+        if ( ! Files.exists(FUSEKI_BASE) ) {
+            try {
+                Files.createDirectories(FUSEKI_BASE);
+            } catch (IOException e) {
+                throw new FusekiConfigException("Failed to create FUSEKI_BASE: "+FUSEKI_BASE);
+            }
+        }
+        if ( ! Files.isWritable(FUSEKI_BASE) )
+            throw new FusekiConfigException("FUSEKI_BASE exists but is not writable");
+
+        FUSEKI_BASE = FUSEKI_BASE.toAbsolutePath();
+    }
+
+    static void setup() {
+        // Command line arguments "--base" ...
+        setEnvironment();
+        FusekiApp.ensureBaseArea(FUSEKI_BASE);
+    }
+
+    /**
+     * Create directories if found to be missing.
+     */
+    public static void ensureBaseArea(Path FUSEKI_BASE) {
+        if ( Files.exists(FUSEKI_BASE) ) {
+            if ( ! Files.isDirectory(FUSEKI_BASE) )
+                throw new FusekiConfigException("FUSEKI_BASE is not a directory: "+FUSEKI_BASE);
+            if ( ! Files.isWritable(FUSEKI_BASE) )
+                throw new FusekiConfigException("FUSEKI_BASE is not writable: "+FUSEKI_BASE);
+        } else {
+            ensureDir(FUSEKI_BASE);
+        }
+
+        // Ensure FUSEKI_BASE has the assumed directories.
+        dirTemplates        = writeableDirectory(FUSEKI_BASE, templatesNameBase);
+        dirDatabases        = writeableDirectory(FUSEKI_BASE, databasesLocationBase);
+        dirBackups          = writeableDirectory(FUSEKI_BASE, backupDirNameBase);
+        dirConfiguration    = writeableDirectory(FUSEKI_BASE, configDirNameBase);
+        dirLogs             = writeableDirectory(FUSEKI_BASE, logsNameBase);
+        dirSystemFileArea   = writeableDirectory(FUSEKI_BASE, systemFileAreaBase);
+
+        // ---- Initialize with files.
+
+//        // Copy missing files into FUSEKI_BASE
+        // Interacts with FMod_Shiro.
+        if ( Lib.getenv("FUSEKI_SHIRO") == null ) {
+            copyFileIfMissing(null, DFT_SHIRO_INI, FUSEKI_BASE);
+            System.setProperty("FUSEKI_SHIRO", DFT_SHIRO_INI);
+        }
+
+        copyFileIfMissing(null, DFT_CONFIG, FUSEKI_BASE);
+        for ( String n : Template.templateNames ) {
+            copyFileIfMissing(null, n, FUSEKI_BASE);
+        }
+
+        serverInitialized = true;
     }
 
     /** Copy a file from src to dst under name fn.
@@ -184,7 +186,6 @@ public class FusekiWebapp
      *
      */
     private static void copyFileIfMissing(Path src, String fn, Path dst) {
-
         Path dstFile = dst.resolve(fn);
         if ( Files.exists(dstFile) )
             return;
@@ -192,82 +193,31 @@ public class FusekiWebapp
         // fn may be a path.
         if ( src != null ) {
             try {
-                Files.copy(src.resolve(fn), dstFile, StandardCopyOption.COPY_ATTRIBUTES);
-            } catch (IOException e) {
-                IO.exception("Failed to copy file "+src.resolve(fn), e);
-                e.printStackTrace();
+                IOX.safeWrite(dstFile, output->Files.copy(src.resolve(fn), output));
+            } catch (RuntimeIOException e) {
+                throw new FusekiConfigException("Failed to copy file "+src.resolve(fn)+" to "+dstFile, e);
             }
         } else {
             copyFileFromResource(fn, dstFile);
         }
     }
 
-    public static void copyFileFromResource(String fn, Path dstFile) {
+    private static void copyFileFromResource(String fn, Path dstFile) {
         try {
-            // Get from the file from area "org/apache/jena/fuseki/server"  (our package)
-            InputStream input = FusekiWebapp.class
-                    .getClassLoader() // Else prepends classname as path
-                    .getResourceAsStream(fn);
+            // Get from the file from area "org/apache/jena/fuseki/server"
+            String absName = "org/apache/jena/fuseki/server/"+fn;
+            InputStream input = FusekiApp.class
+                    // Else prepends classname as path
+                    .getClassLoader()
+                    .getResourceAsStream(absName);
 
             if ( input == null )
                 throw new FusekiConfigException("Failed to find resource '"+fn+"'");
-            Files.copy(input, dstFile);
+            IOX.safeWrite(dstFile, (output)-> input.transferTo(output));
         }
-        catch (IOException e) {
-            IO.exception("Failed to copy file from resource: "+fn, e);
-            e.printStackTrace();
+        catch (RuntimeException e) {
+            throw new FusekiConfigException("Failed to copy "+fn+" to "+dstFile, e);
         }
-    }
-
-    public static void initializeDataAccessPoints(DataAccessPointRegistry registry, FusekiArgs initialSetup, String configDir) {
-        List<DataAccessPoint> configFileDBs = initServerConfiguration(initialSetup);
-        List<DataAccessPoint> directoryDBs =  FusekiConfig.readConfigurationDirectory(configDir);
-
-        List<DataAccessPoint> datapoints = new ArrayList<>();
-        datapoints.addAll(configFileDBs);
-        datapoints.addAll(directoryDBs);
-        datapoints.forEach(registry::register);
-    }
-
-    private static List<DataAccessPoint> initServerConfiguration(FusekiArgs params) {
-        // Has a side effect of global context setting
-        // when processing a config file.
-        // Compatibility.
-
-        List<DataAccessPoint> datasets = new ArrayList<>();
-        if ( params == null )
-            return datasets;
-
-        if ( params.fusekiCmdLineConfigFile != null ) {
-            List<DataAccessPoint> confDatasets = processServerConfigFile(params.fusekiCmdLineConfigFile);
-            datasets.addAll(confDatasets);
-        } else if ( params.fusekiServerConfigFile != null ) {
-                List<DataAccessPoint> confDatasets = processServerConfigFile(params.fusekiServerConfigFile);
-                datasets.addAll(confDatasets);
-        } else if ( params.dsg != null ) {
-            // RDFS
-            if ( params.rdfsGraph != null ) {
-                Graph rdfsGraph = RDFDataMgr.loadGraph(params.rdfsGraph);
-                params.dsg = RDFSFactory.datasetRDFS(params.dsg, rdfsGraph);
-            }
-            DataAccessPoint dap = datasetDefaultConfiguration(params.datasetPath, params.dsg, params.allowUpdate);
-            datasets.add(dap);
-        } else if ( params.templateFile != null ) {
-            DataAccessPoint dap = configFromTemplate(params.templateFile, params.datasetPath, params.allowUpdate, params.params);
-            if ( params.rdfsGraph != null ) {
-                // RDFS
-                // Create a new DataAccessPoint - same name, same operations, different dataset.
-                DataService dSrv = dap.getDataService();
-                DatasetGraph dsg = dSrv.getDataset();
-                Graph rdfsGraph = RDFDataMgr.loadGraph(params.rdfsGraph);
-                DatasetGraph dsg2 = RDFSFactory.datasetRDFS(dsg, rdfsGraph);
-                DataService dSrv2 = DataService.newBuilder(dSrv).dataset(dsg2).build();
-                dap = new DataAccessPoint(dap.getName(), dSrv2);
-            }
-            datasets.add(dap);
-        }
-        // No datasets is valid.
-        return datasets;
     }
 
     private static List<DataAccessPoint> processServerConfigFile(String configFilename) {
@@ -339,14 +289,14 @@ public class FusekiWebapp
 
     public static void addGlobals(Map<String, String> params) {
         if ( params == null ) {
-            Fuseki.configLog.warn("FusekiServer.addGlobals : params is null", new Throwable());
+            Fuseki.configLog.warn("FusekAppEnv.addGlobals : params is null", new Throwable());
             return;
         }
 
         if ( ! params.containsKey("FUSEKI_BASE") )
-            params.put("FUSEKI_BASE", pathStringOrElse(FusekiEnv.FUSEKI_BASE, "unset"));
-        if ( ! params.containsKey("FUSEKI_HOME") )
-            params.put("FUSEKI_HOME", pathStringOrElse(FusekiEnv.FUSEKI_HOME, "unset"));
+            params.put("FUSEKI_BASE", pathStringOrElse(FUSEKI_BASE, "unset"));
+//        if ( ! params.containsKey("FUSEKI_HOME") )
+//            params.put("FUSEKI_HOME", pathStringOrElse(FusekiAppEnv.FUSEKI_HOME, "unset"));
     }
 
     private static String pathStringOrElse(Path path, String dft) {
@@ -446,7 +396,7 @@ public class FusekiWebapp
         // Without "/"
         if ( filename.startsWith("/"))
             filename = filename.substring(1);
-        Path p = FusekiWebapp.dirConfiguration.resolve(filename+".ttl");
+        Path p = FusekiApp.dirConfiguration.resolve(filename+".ttl");
         return p.toString();
     }
 
@@ -454,12 +404,13 @@ public class FusekiWebapp
     public static List<String> existingConfigurationFile(String baseFilename) {
         try {
             List<String> paths = new ArrayList<>();
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(FusekiWebapp.dirConfiguration, baseFilename+".*") ) {
-                stream.forEach((p)-> paths.add(FusekiWebapp.dirConfiguration.resolve(p).toString() ));
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(FusekiApp.dirConfiguration, baseFilename+".*") ) {
+                stream.forEach((p)-> paths.add(FusekiApp.dirConfiguration.resolve(p).toString() ));
             }
             return paths;
         } catch (IOException ex) {
-            throw new InternalErrorException("Failed to read configuration directory "+FusekiWebapp.dirConfiguration);
+            throw new InternalErrorException("Failed to read configuration directory "+FusekiApp.dirConfiguration);
         }
     }
+
 }

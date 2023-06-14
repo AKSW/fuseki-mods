@@ -43,6 +43,10 @@ public class FMod_UI implements FusekiModule {
         return "UI";
     }
 
+    // Before FMod_admin
+    @Override
+    public int level() { return 500; }
+
     @Override
     public void prepare(FusekiServer.Builder builder, Set<String> datasetNames, Model configModel) {
         if ( builder.staticFileBase() != null ) {
@@ -67,9 +71,11 @@ public class FMod_UI implements FusekiModule {
         // Modify the server to include the UI and any server-side servlets needed by the UI.
         builder
             .staticFileBase(uiAppLocation)
-            // Required functions.
-            .addServlet("/$/datasets", new ActionDatasets())
-            .addServlet("/$/server", new ActionServerStatus())
+            // Required functions. Dummies.
+            // Not database create.
+            .addServlet("/$/datasets", new DummyActionDatasets())
+            .addServlet("/$/server", new DummyActionServerStatus())
+
             .enablePing(true)
             .enableStats(true)
             // Not required but helpful.

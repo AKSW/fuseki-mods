@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+## Run Fuseki, include development code if it looks like it's available.
+
+function check_dir() {
+    local NAME="$1"
+    local DIR="$2"
+    if [ ! -e "$DIR" ]
+    then
+	echo "$NAME: '$DIR' does not exist" 1>&2
+	exit 1
+    fi
+    if [ ! -d "$DIR" ]
+    then
+	echo "$NAME: '$DIR' exists but is not a directory" 1>&2
+    exit 1
+    fi
+}
+
+VER=''
+if [[ "$1" == "-ver" || "$1" == "--ver" ]]
+then 
+    if [[ $# -lt 2 ]] 
+    then
+	echo $USAGE 1>&2
+	exit 1
+    fi
+    VER="$2"
+    shift
+    shift
+fi
+
+ARGS="$@"
+
+JVM_ARGS=${JVM_ARGS:--Xmx2000M}
+
+MAIN="org.apache.jena.fuseki.main.cmds.FusekiMainCmd"
+
+# Run release Fuseki
+function release_fuseki() {
+    ## Add "extra/" ("libs/") supportf
+    
+    local VER="$1"
+
+    FUSEKI_JAR=$HOME/.m2/repo/org/apache/jena/jena-fuseki-server/$VER/jena-fuseki-server-$VER.jar
+    if [[ ! -e $FUSEKI_JAR ]]
+    then
+	(
+	    echo "No jar: $FUSEKI_JAR"
+	    if [[ $VER != '' ]]
+	    then
+		D="org/apache/jena/jena-fuseki-server/$VER"
+		echo "Download the \"-server\" jar"
+		echo "  wget https://repo1.maven.org/maven2/$D/jena-fuseki-server-$VER.jar"
+		echo "  mkdir -p  $HOME/.m2/repo/$D/"
+		echo "  mv jena-fuseki-server-$VER.jar $HOME/.m2/repo/$D/"
+		echo "and rerun"
+	    fi
+	) 1>&2
+	exit 1
+    fi
+    echo "Run: $FUSEKI_JAR"
+    exec java $JVM_ARG -jar "$FUSEKI_JAR" $ARGS
+}
+
+if [[ $VER != '' ]]
+then
+    release_fuseki "$VER"
+    exit
+fi
+
+JH="${JH:-$HOME/ASF/afs-jena}"
+#CMD=org.apache.jena.fuseki.cmds.FusekiBasicCmd
+export FUSEKI_HOME="${FUSEKI_HOME:-$JH/jena-fuseki2}"
+check_dir "FUSEKI_HOME" "$FUSEKI_HOME"
+
+CPF="$HOME/sys/classpaths/fuseki"
+if [ ! -e "$CPF" ]; then
+    echo "Need to create Fuseki classpath file"
+    echo "Ensure maven is up to date with the latest snapshots and then run"
+    echo "( cd $FUSEKI_HOME/jena-fuseki-server"
+    echo "  mvn dependency:build-classpath \\"
+    echo "     -DincludeScope=runtime -Dmdep.outputFile=$CPF )"
+    exit 1
+fi
+CP="$(cat $CPF)"
+
+DEVJ="../jena-base ../jena-core ../jena-arq ../jena-rdfpatch ../jena-shacl ../jena-cmds ../jena-text"
+DEV="jena-fuseki-main jena-fuseki-core"
+for X in $DEV $DEVJ
+do
+    CPX="$FUSEKI_HOME/$X/target/classes"
+    if [ -e "$CPX" ]
+    then
+	CP="$CPX:$CP"
+     else
+	 echo "No such directory: $CPX" 1>&2
+	 exit 1
+    fi
+done
+
+# Prepend any development directories here
+DEVDIRS="jena-core jena-tdb jena-arq"
+for X in $DEVDIRS
+do
+    CPX="$FUSEKI_HOME/../$X/target/classes"
+    if [ -e "$CPX" ]
+    then
+	CP="$CPX:$CP"
+    fi
+done
+
+if [ -z "$JAVA" ]
+then
+    if [ -z "$JAVA_HOME" ]
+    then
+       JAVA=$(which java)
+    else
+        JAVA=$JAVA_HOME/bin/java
+    fi
+fi
+
+if [ -z "$JAVA" ]
+then
+    (
+	echo "Cannot find a Java JDK."
+	echo "Please set either set JAVA or JAVA_HOME and put java in your PATH."
+    ) 1>&2
+  exit 1
+fi
+
+
+# Debug assistence
+## echo "++++ Classpath:"
+## echo "$(echo $CP | sed -e "s/:/\n/g")"
+## exit
+
+if [[ $ARGS = "CP" ]]
+then
+    echo $CP
+    exit
+fi
+
+echo "Jena code: $JH"
+if [[ $ARGS = "-path" || $ARGS = "--path" ]]
+then
+##    echo $CP
+    echo "$CP" \
+	| sed -e 's/:/\n/g' \
+	| sed -e 's!^/home/afs/.m2/repo!Repo!g' \
+	| grep -v '^Repo'
+    exit
+fi
+
+##MAIN="fuseki.run"
+exec "$JAVA" -cp "$CP:lib/*" $JVM_ARGS $MAIN $ARGS

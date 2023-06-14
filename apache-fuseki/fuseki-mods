@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+export FUSEKI_HOME="$PWD"
+export FUSEKI_BASE="$PWD/run"
+exec run-fuseki "$@"
+
+
+ARGS="$@"
+
+## Environment variables.
+## One area? HOME==BASE?
+
+## export FUSEKI_HOME="${FUSEKI_HOME:-$PWD}"
+## export FUSEKI_BASE="${FUSEKI_BASE:-$FUSEKI_HOME}"
+
+## Override of the Fuseki jar file location. Usually unset.
+
+##FUSEKI_JAR=
+
+## Directory of extra jars - Fuseki modules and dependencies.
+FUSEKI_LIB="$FUSEKI_HOME"'/lib'
+
+## Settings.
+## Name of the jar entry point.
+MAIN=org.apache.jena.fuseki.main.cmds.FusekiMainCmd
+
+DEBUG="${DEBUG:-}"
+VERBOSE="${VERBOSE:-}"
+
+## ---- Functions
+
+function debug() {
+    [[ -n $DEBUG ]] || return 
+    local MSG="$1"
+    echo "$MSG" 1>&2
+}
+
+function find_jar() {
+    local DIR="$FUSEKI_HOME"
+
+    local JAR="$(find_jar1 $DIR)"
+
+    if [[ -z $JAR ]]
+    then
+	 JAR="$(find_jar1 $PWD)"
+    fi
+    
+    if [[ -z $JAR ]] ; then
+	 JAR="$(find_jar1 $PWD/target)"
+    fi
+    echo "$JAR"
+}
+
+function find_jar1() {
+    local DIR="$1"
+    local JAR="$(echo "$DIR"/jena-fuseki-main-*.jar)"
+    
+    if [[ ! -e $JAR ]]
+    then
+	JAR=""
+    fi
+    echo "$JAR"
+}
+
+## ---- Find java.
+if [ -z "$JAVA" ]
+then
+    if [ -z "$JAVA_HOME" ]
+    then
+	JAVA="$(which java)"
+    else
+        JAVA="$JAVA_HOME/bin/java"
+    fi
+fi
+
+if [ -z "$JAVA" ]
+then
+    (
+	echo "Cannot find a Java JDK."
+	echo "Please set either set JAVA or JAVA_HOME and put java (>=11) in your PATH."
+    ) 1>&2
+  exit 1
+fi
+
+debug "JAVA=$JAVA"
+
+export FUSEKI_BASE="$PWD/run"
+if [ ! -e "$FUSEKI_BASE" ] ; then
+    mkdir "$FUSEKI_BASE"
+fi
+echo $FUSEKI_BASE
+
+## -------------------
+
+## ---- Find the Fuseki jar file.
+## Usually in the same directory as the script.
+## Try a few places.
+FUSEKI_JAR="${FUSEKI_JAR:-$(find_jar)}"
+
+if [[ $? -ne 0 ]] ; then
+    echo "Failed to find a FUSEKI_JAR" 1>&2
+    exit 1
+fi
+
+if [[ ! -e "$FUSEKI_JAR" ]]
+then
+    echo "Can't find Fuseki server jar file '$FUSEKI_JAR'" 1>&2
+    exit 1
+fi
+
+if [[ ! -d "$FUSEKI_LIB" ]]
+then
+    FUSEKI_LIB=""
+fi
+
+if [[ $VERBOSE == 'true' ]]
+then
+    (
+	echo "FUSEKI_HOME = $FUSEKI_HOME"
+	echo "FUSEKI_JAR  = $FUSEKI_JAR"
+	echo "FUSEKI_LIB  = $FUSEKI_LIB"
+    ) 1>&2
+fi
+
+## ---- JVM
+
+# One database setup.
+JVM_ARGS=${JVM_ARGS:--Xmx2G}
+
+## ---- Logging
+## Fuseki use Apache Log4j2 for logging.
+## Set the logging via the usual log4j2 mechanisms
+##   https://logging.apache.org/log4j/2.x/manual/configuration.html
+## There is a built-in setup 
+
+## Built-in Fuseki logging setup: in order:
+## 1/ Check for Log4j2 normal setup:  -Dlog4j2.configurationFile= etc.
+## 2/ Look for  file:log4j2.properties (current directory)
+## 3/ Classpath:  log4j2.properties
+## 4/ Built-in setup.
+##   By default: Usually (3) will find the logging.
+
+## To debug Fuseki logging setup: set environment variable
+## FUSEKI_LOGLOGGING or system property "fuseki.loglogging" to "true"
+
+## Log4j2: Setting log4j2 with some other file.
+##  Environment variable: LOG4J_CONFIGURATION_FILE
+##  SystemProperty log4j2.configurationFile 
+##    https://logging.apache.org/log4j/2.x/manual/configuration.html#SystemProperties
+
+CPATH="$FUSEKI_JAR"
+if [[ -n "$FUSEKI_LIB" ]]
+then
+    CPATH="$FUSEKI_JAR:$FUSEKI_LIB"'/*'
+fi
+
+exec $JAVA $JVM_ARGS -cp "$CPATH" "$MAIN" $ARGS

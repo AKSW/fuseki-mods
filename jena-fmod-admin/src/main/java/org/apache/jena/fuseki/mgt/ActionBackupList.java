@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
 import org.apache.jena.atlas.json.JsonBuilder;
 import org.apache.jena.atlas.json.JsonValue;
 import org.apache.jena.fuseki.ctl.ActionCtl;
+import org.apache.jena.fuseki.mod.admin.FusekiApp;
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.ServletOps;
-import org.apache.jena.fuseki.webapp.FusekiWebapp;
 
 /**
  * A JSON API to list all the backups in the backup directory
@@ -67,11 +67,11 @@ public class ActionBackupList extends ActionCtl {
     };
 
     private JsonValue description(HttpAction action) {
-        if ( ! Files.isDirectory(FusekiWebapp.dirBackups) )
-            ServletOps.errorOccurred(format("[%d] Backup area '%s' is not a directory", action.id, FusekiWebapp.dirBackups));
+        if ( ! Files.isDirectory(FusekiApp.dirBackups) )
+            ServletOps.errorOccurred(format("[%d] Backup area '%s' is not a directory", action.id, FusekiApp.dirBackups));
 
         List<Path> paths = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(FusekiWebapp.dirBackups, filterVisibleFiles)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(FusekiApp.dirBackups, filterVisibleFiles)) {
             stream.forEach(paths::add);
         } catch (IOException ex) {
             action.log.error(format("[%d] Backup file list :: IOException :: %s", action.id, ex.getMessage()));
