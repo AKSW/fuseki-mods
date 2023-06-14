@@ -19,6 +19,7 @@ package org.apache.jena.fuseki.mod.geosparql;
 
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.main.FusekiServer;
+import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.server.*;
 import org.apache.jena.rdf.model.Model;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class FMod_SpatialIndexer implements FusekiModule {
+public class FMod_SpatialIndexer implements FusekiAutoModule {
 
     private Operation spatialOperation = null;
 
@@ -53,7 +54,7 @@ public class FMod_SpatialIndexer implements FusekiModule {
 
     @Override
     public void configured(FusekiServer.Builder serverBuilder, DataAccessPointRegistry dapRegistry, Model configModel) {
-        FusekiModule.super.configured(serverBuilder, dapRegistry, configModel);
+        FusekiAutoModule.super.configured(serverBuilder, dapRegistry, configModel);
 
         List<DataAccessPoint> daps = dapRegistry.accessPoints().stream().map(dap -> {
             Endpoint endpoint = Endpoint.create()
@@ -74,7 +75,7 @@ public class FMod_SpatialIndexer implements FusekiModule {
 
     @Override
     public void configDataAccessPoint(DataAccessPoint dap, Model configModel) {
-        FusekiModule.super.configDataAccessPoint(dap, configModel);
+        FusekiAutoModule.super.configDataAccessPoint(dap, configModel);
     }
 
     @Override
