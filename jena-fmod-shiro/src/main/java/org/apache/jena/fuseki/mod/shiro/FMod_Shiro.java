@@ -32,7 +32,7 @@ import org.apache.jena.atlas.lib.Lib;
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.FusekiConfigException;
 import org.apache.jena.fuseki.main.FusekiServer;
-import org.apache.jena.fuseki.main.sys.FusekiModule;
+import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
 import org.apache.jena.rdf.model.Model;
 import org.apache.shiro.web.servlet.ShiroFilter;
 import org.eclipse.jetty.server.session.SessionHandler;
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Fuseki Module for Apache Shiro
  */
-public class FMod_Shiro implements FusekiModule {
+public class FMod_Shiro implements FusekiAutoModule {
     // Assumes the whole system is "Shiro".
     // No setup?
 
@@ -66,7 +66,12 @@ public class FMod_Shiro implements FusekiModule {
      */
 
     @Override
-    public String name() { return "ModShiro"; }
+    public void start() {
+        Fuseki.serverLog.info("FMod Shiro");
+    }
+
+    @Override
+    public String name() { return "FMod Shiro"; }
 
     @Override public void prepare(FusekiServer.Builder serverBuilder, Set<String> datasetNames, Model configModel) {
         if ( ! Objects.equals("disabled", System.getenv("FUSEKI_SHIRO") ) ) {

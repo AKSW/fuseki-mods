@@ -18,12 +18,13 @@
     <build.time.xsd>${maven.build.timestamp}</build.time.xsd>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <ver.jena>4.8.0</ver.jena>
+    <ver.jena>4.9.0-SNAPSHOT</ver.jena>
+    <ver.fmod>0.0.0-SNAPSHOT</ver.fmod>
+
     <ver.junit>4.13.2</ver.junit>
     <ver.slf4j>1.7.36</ver.slf4j>
-    <ver.log4j2>2.19.0</ver.log4j2>
-    <ver.jena>4.8.0</ver.jena>
-    <ver.fmod>0.0.0-SNAPSHOT</ver.fmod>
+    <ver.log4j2>2.20.0</ver.log4j2>
+
   </properties>
 
   <dependencies>
@@ -35,18 +36,18 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.jena</groupId>
+      <groupId>org.apache.jena.fuseki</groupId>
       <artifactId>jena-fmod-shiro</artifactId>
       <version>${ver.fmod}</version>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.jena</groupId>
+      <groupId>org.apache.jena.fuseki</groupId>
       <artifactId>jena-fmod-admin</artifactId>
       <version>${ver.fmod}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.jena</groupId>
+      <groupId>org.apache.jena.fuseki</groupId>
       <artifactId>jena-fmod-ui</artifactId>
       <version>${ver.fmod}</version>
     </dependency>
