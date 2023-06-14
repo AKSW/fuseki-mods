@@ -18,6 +18,8 @@
 
 package org.apache.jena.fuseki.mod.geosparql;
 
+import org.apache.jena.atlas.RuntimeIOException;
+import org.apache.jena.atlas.io.IOX;
 import org.apache.jena.atlas.lib.DateTimeUtils;
 import org.apache.jena.fuseki.FusekiException;
 import org.apache.jena.fuseki.servlets.BaseActionREST;
@@ -32,9 +34,17 @@ import org.apache.jena.riot.WebContent;
 import org.apache.jena.riot.web.HttpNames;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.web.HttpSC;
+import org.slf4j.Logger;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -50,7 +60,7 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
     private static List<String> getGraphs(DatasetGraph dsg, HttpAction action) {
         String[] uris = action.getRequest().getParameterValues(HttpNames.paramGraph);
 
-        return List.of(uris);
+        return uris == null ? Collections.emptyList() : List.of(uris);
     }
 
     @Override
@@ -125,6 +135,25 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
             action.getResponseOutputStream().print("Spatial index computation completed at " + DateTimeUtils.nowAsXSDDateTimeString());
         } catch (IOException e) {
             throw new FusekiException(e);
+        }
+    }
+
+    public static boolean saveIndexCarefully(File spatialIndexFile, SpatialIndex index, Logger log) throws SpatialIndexException {
+        String filename = spatialIndexFile.getAbsolutePath();
+        Path file = Path.of(filename);
+        Path tmpFile = IOX.uniqueDerivedPath(file, null);
+
+        try {
+            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tmpFile))) {
+                SpatialIndex.writeToOutputStream(out, index);
+            }
+            Files.move(tmpFile, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException ex) {
+            log.error("Failed to save spatial index.", ex);
+            throw new SpatialIndexException("Save Exception: " + ex.getMessage(), ex);
+        } finally {
+            log.info("Saving Spatial Index - Completed: {}", spatialIndexFile.getAbsolutePath());
         }
     }
 }
