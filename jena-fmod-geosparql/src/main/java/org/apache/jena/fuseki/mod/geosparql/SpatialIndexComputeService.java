@@ -87,6 +87,13 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
             } else {
                 action.log.info(format("[%d] spatial index: computation started", action.id));
 
+                File targetFile = null;
+                if (spatialIndexFilePathStr != null) {
+                    targetFile = new File(spatialIndexFilePathStr);
+                } else {
+                    targetFile = index.getLocation();
+                }
+
                 // check if graph based index has been configured on the dataset
                 boolean spatialIndexPerGraph = ds.getContext().get(SpatialIndex.symSpatialIndexPerGraph, false);
 
@@ -105,13 +112,9 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
                     }
                 }
 
+                index.setLocation(targetFile);
+
                 if (commit != null) {
-                    File targetFile;
-                    if (spatialIndexFilePathStr != null) {
-                        targetFile = new File(spatialIndexFilePathStr);
-                    } else {
-                        targetFile = index.getLocation();
-                    }
                     if (targetFile != null) {
                         action.log.info("writing spatial index to disk at {}", targetFile.getAbsolutePath());
                         SpatialIndex.save(targetFile, index);
