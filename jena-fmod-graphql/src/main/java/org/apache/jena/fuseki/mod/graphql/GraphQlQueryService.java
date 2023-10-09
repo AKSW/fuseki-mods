@@ -91,7 +91,7 @@ public class GraphQlQueryService extends BaseActionREST { //ActionREST {
         Gson gson = new Gson();
         JsonObject queryJson = gson.fromJson(queryJsonStr, JsonObject.class);
 
-        RdfDataSource dataSource = RdfDataEngines.of(DatasetFactory.wrap(action.getDataset()));
+        RdfDataSource dataSource = RdfDataEngines.of(DatasetFactory.wrap(dsg));
         GraphQlExecFactory gef = new GraphQlExecFactoryOverSparql(dataSource,
                 new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
         GraphQlExec ge = GraphQlExecUtils.execJson(gef, queryJson);
