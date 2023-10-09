@@ -37,7 +37,7 @@ public class FMod_GraphQl implements FusekiAutoModule {
 
     @Override
     public String name() {
-        return "Spatial Indexer";
+        return "GraphQl query service";
     }
 
     @Override
