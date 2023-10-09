@@ -14,8 +14,8 @@
     <description>GraphQL Fuseki Module</description>
 
     <properties>
-	    <automatic.module.name>org.apache.jena.fuseki.geosparql</automatic.module.name>
-	    <ver.jenax>${ver.jena}-1-SNAPSHOT</ver.jenax>
+      <automatic.module.name>org.apache.jena.fuseki.graphql</automatic.module.name>
+      <ver.jenax>${ver.jena}-1-SNAPSHOT</ver.jenax>
     </properties>
 
     <dependencies>
@@ -26,7 +26,7 @@
             <version>${ver.jena}</version>
         </dependency>
 
-	<dependency>
+        <dependency>
             <groupId>org.aksw.jenax</groupId>
             <artifactId>jenax-graphql</artifactId>
             <version>${ver.jenax}</version>
@@ -35,7 +35,6 @@
         <dependency>
             <groupId>org.apache.jena</groupId>
             <artifactId>jena-fuseki-main</artifactId>
-            <version>${ver.jena}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -47,7 +46,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
-
                     <artifactSet>
                         <!-- Dependencies
                         <includes>
@@ -58,7 +56,6 @@
                             <exclude>org.apache.jena:jena-fuseki-main</exclude>
                         </excludes>
                     </artifactSet>
-
                 </configuration>
             </plugin>
         </plugins>

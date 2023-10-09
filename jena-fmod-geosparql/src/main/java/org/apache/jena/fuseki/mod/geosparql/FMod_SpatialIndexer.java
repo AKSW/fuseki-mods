@@ -17,16 +17,19 @@
  */
 package org.apache.jena.fuseki.mod.geosparql;
 
-import org.apache.jena.fuseki.Fuseki;
-import org.apache.jena.fuseki.main.FusekiServer;
-import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
-import org.apache.jena.fuseki.main.sys.FusekiModule;
-import org.apache.jena.fuseki.server.*;
-import org.apache.jena.rdf.model.Model;
-
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.jena.fuseki.Fuseki;
+import org.apache.jena.fuseki.main.FusekiServer;
+import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
+import org.apache.jena.fuseki.server.DataAccessPoint;
+import org.apache.jena.fuseki.server.DataAccessPointRegistry;
+import org.apache.jena.fuseki.server.DataService;
+import org.apache.jena.fuseki.server.Endpoint;
+import org.apache.jena.fuseki.server.Operation;
+import org.apache.jena.rdf.model.Model;
 
 public class FMod_SpatialIndexer implements FusekiAutoModule {
 
