@@ -54,7 +54,7 @@ public class GraphQlQueryService extends BaseActionREST { //ActionREST {
 	@Override
 	protected void doGet(HttpAction action) {
 		// Serves the minimal graphql ui
-		String resourceName = "graphql/min/index.html";
+		String resourceName = "graphql/mui/index.html";
 		String str = null;
     	try (InputStream in = GraphQlQueryService.class.getClassLoader().getResourceAsStream(resourceName)) {
     		str = IOUtils.toString(in, StandardCharsets.UTF_8);
