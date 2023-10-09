@@ -18,8 +18,6 @@
 
 package org.apache.jena.fuseki.mod.graphql;
 
-import static java.lang.String.format;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,12 +25,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
-import org.aksw.jenax.graphql.GraphQlExec;
-import org.aksw.jenax.graphql.GraphQlExecFactory;
-import org.aksw.jenax.graphql.impl.core.GraphQlExecUtils;
-import org.aksw.jenax.graphql.impl.core.GraphQlResolverAlwaysFail;
-import org.aksw.jenax.graphql.impl.sparql.GraphQlExecFactoryOverSparql;
-import org.aksw.jenax.graphql.impl.sparql.GraphQlToSparqlConverter;
+import org.aksw.jenax.graphql.api.GraphQlExec;
+import org.aksw.jenax.graphql.api.GraphQlExecFactory;
+import org.aksw.jenax.graphql.impl.common.GraphQlExecUtils;
+import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.fuseki.FusekiException;
 import org.apache.jena.fuseki.servlets.BaseActionREST;
@@ -49,8 +45,8 @@ import com.google.gson.JsonObject;
 /**
  * Spatial index (re)computation service.
  */
-public class GraphQlQueryService extends BaseActionREST { //ActionREST {
-
+public class GraphQlQueryService extends BaseActionREST {
+    /** Get request; currently always returns HTML */
     @Override
     protected void doGet(HttpAction action) {
         // Serves the minimal graphql ui
@@ -77,6 +73,7 @@ public class GraphQlQueryService extends BaseActionREST { //ActionREST {
         }
     }
 
+    /** Post request; currently always handles graphql execution */
     @Override
     protected void doPost(HttpAction action) {
         DatasetGraph dsg = action.getDataset();
@@ -92,8 +89,7 @@ public class GraphQlQueryService extends BaseActionREST { //ActionREST {
         JsonObject queryJson = gson.fromJson(queryJsonStr, JsonObject.class);
 
         RdfDataSource dataSource = RdfDataEngines.of(DatasetFactory.wrap(dsg));
-        GraphQlExecFactory gef = new GraphQlExecFactoryOverSparql(dataSource,
-                new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
+        GraphQlExecFactory gef = GraphQlExecFactoryOverSparql.of(dataSource);
         GraphQlExec ge = GraphQlExecUtils.execJson(gef, queryJson);
 
         action.beginRead();
