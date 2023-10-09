@@ -51,57 +51,57 @@ import com.google.gson.JsonObject;
  */
 public class GraphQlQueryService extends BaseActionREST { //ActionREST {
 
-	@Override
-	protected void doGet(HttpAction action) {
-		// Serves the minimal graphql ui
-		String resourceName = "graphql/mui/index.html";
-		String str = null;
-    	try (InputStream in = GraphQlQueryService.class.getClassLoader().getResourceAsStream(resourceName)) {
-    		str = IOUtils.toString(in, StandardCharsets.UTF_8);
-    	} catch (IOException e) {
-    		throw new FusekiException(e);
-		}
+    @Override
+    protected void doGet(HttpAction action) {
+        // Serves the minimal graphql ui
+        String resourceName = "graphql/mui/index.html";
+        String str = null;
+        try (InputStream in = GraphQlQueryService.class.getClassLoader().getResourceAsStream(resourceName)) {
+            str = IOUtils.toString(in, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new FusekiException(e);
+        }
 
-		if (str == null) {
+        if (str == null) {
             action.setResponseStatus(HttpSC.INTERNAL_SERVER_ERROR_500);
             action.setResponseContentType(WebContent.contentTypeTextPlain);
             str = "Failed to load classpath resource " + resourceName;
-		} else {
-	        action.setResponseStatus(HttpSC.OK_200);
-	        action.setResponseContentType(WebContent.contentTypeHTML);
-		}
+        } else {
+            action.setResponseStatus(HttpSC.OK_200);
+            action.setResponseContentType(WebContent.contentTypeHTML);
+        }
         try (OutputStream out = action.getResponseOutputStream()) {
-    		IOUtils.write(str, out, StandardCharsets.UTF_8);
-    	} catch (IOException e) {
-    		throw new FusekiException(e);
-		}
-	}
+            IOUtils.write(str, out, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new FusekiException(e);
+        }
+    }
 
     @Override
     protected void doPost(HttpAction action) {
-    	DatasetGraph dsg = action.getDataset();
-    	Preconditions.checkArgument(dsg != null, "DatasetGraph not set for request");
+        DatasetGraph dsg = action.getDataset();
+        Preconditions.checkArgument(dsg != null, "DatasetGraph not set for request");
 
-    	String queryJsonStr;
-    	try (InputStream in = action.getRequestInputStream()) {
-    		queryJsonStr = IOUtils.toString(in, StandardCharsets.UTF_8);
-    	} catch (IOException e1) {
-    		throw new FusekiException(e1);
-		}
-    	Gson gson = new Gson();
-    	JsonObject queryJson = gson.fromJson(queryJsonStr, JsonObject.class);
+        String queryJsonStr;
+        try (InputStream in = action.getRequestInputStream()) {
+            queryJsonStr = IOUtils.toString(in, StandardCharsets.UTF_8);
+        } catch (IOException e1) {
+            throw new FusekiException(e1);
+        }
+        Gson gson = new Gson();
+        JsonObject queryJson = gson.fromJson(queryJsonStr, JsonObject.class);
 
-    	RdfDataSource dataSource = RdfDataEngines.of(DatasetFactory.wrap(action.getDataset()));
-    	GraphQlExecFactory gef = new GraphQlExecFactoryOverSparql(dataSource,
-    			new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
-    	GraphQlExec ge = GraphQlExecUtils.execJson(gef, queryJson);
+        RdfDataSource dataSource = RdfDataEngines.of(DatasetFactory.wrap(action.getDataset()));
+        GraphQlExecFactory gef = new GraphQlExecFactoryOverSparql(dataSource,
+                new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
+        GraphQlExec ge = GraphQlExecUtils.execJson(gef, queryJson);
 
         action.beginRead();
         try {
             action.setResponseStatus(HttpSC.OK_200);
             action.setResponseContentType(WebContent.contentTypeJSON);
             try (OutputStream out = action.getResponseOutputStream()) {
-            	GraphQlExecUtils.writePretty(out, ge);
+                GraphQlExecUtils.writePretty(out, ge);
             }
             // action.log.info(format("[%d] graphql: execution finished", action.id));
         } catch (IOException e) {
