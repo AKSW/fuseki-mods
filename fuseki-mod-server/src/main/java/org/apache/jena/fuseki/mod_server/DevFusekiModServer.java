@@ -18,6 +18,7 @@
 
 package org.apache.jena.fuseki.mod_server;
 
+import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +30,7 @@ import org.apache.jena.fuseki.mod.admin.FMod_Admin;
 import org.apache.jena.fuseki.mod.ui.FMod_UI;
 import org.apache.jena.fuseki.system.FusekiLogging;
 import org.apache.jena.http.HttpOp;
+import org.apache.jena.http.auth.AuthEnv;
 import org.apache.jena.rdflink.RDFLink;
 import org.apache.jena.riot.WebContent;
 import org.apache.jena.sparql.exec.RowSet;
@@ -88,7 +90,7 @@ public class DevFusekiModServer {
 
         // basic auth. admin-pw
         String adminURL = server.serverURL()+"$";
-        //AuthEnv.get().registerUsernamePassword(URI.create(adminURL), "admin","pw");
+        AuthEnv.get().registerUsernamePassword(URI.create(adminURL), "admin","pw");
 
         HttpOp.httpPost(adminURL+"/datasets",
                         WebContent.contentTypeHTMLForm,
