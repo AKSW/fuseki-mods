@@ -37,20 +37,20 @@ public class FMod_GraphQl implements FusekiAutoModule {
 
     @Override
     public String name() {
-        return "GraphQl query service";
+        return "GraphQL query service";
     }
 
     @Override
     public void start() {
-        Fuseki.configLog.info("Add spatial indexer operation into global registry.");
-        graphQlQueryOperation = Operation.alloc("http://org.apache.jena/spatial-index-service",
+        Fuseki.configLog.info("Add GraphQL operation into global registry.");
+        graphQlQueryOperation = Operation.alloc("http://org.apache.jena/graphql-service",
                 "graphql",
-                "GraphQl query service");
+                "GraphQL query service");
     }
 
     @Override
     public void prepare(FusekiServer.Builder builder, Set<String> datasetNames, Model configModel) {
-        Fuseki.configLog.info("Module adds graphql servlet");
+        Fuseki.configLog.info("Module adds GraphQL servlet");
         builder.registerOperation(graphQlQueryOperation, new GraphQlQueryService());
         datasetNames.forEach(name -> builder.addEndpoint(name, "graphql", graphQlQueryOperation));
     }
