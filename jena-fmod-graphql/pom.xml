@@ -15,7 +15,8 @@
 
     <properties>
       <automatic.module.name>org.apache.jena.fuseki.graphql</automatic.module.name>
-      <ver.jenax>${ver.jena}-1-SNAPSHOT</ver.jenax>
+      <!-- <ver.jenax>${ver.jena}-1-SNAPSHOT</ver.jenax> -->
+      <ver.jenax>5.0.0-1-SNAPSHOT</ver.jenax>
     </properties>
 
     <dependencies>
