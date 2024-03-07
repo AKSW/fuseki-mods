@@ -22,8 +22,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+
 import org.apache.shiro.web.filter.authz.PortFilter;
 
 /**

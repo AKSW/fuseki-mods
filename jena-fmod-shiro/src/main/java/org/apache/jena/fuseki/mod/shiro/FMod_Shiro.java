@@ -22,29 +22,28 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.ServletContext;
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
+
 import org.apache.jena.atlas.lib.Lib;
 import org.apache.jena.fuseki.Fuseki;
 import org.apache.jena.fuseki.FusekiConfigException;
 import org.apache.jena.fuseki.main.FusekiServer;
-import org.apache.jena.fuseki.main.sys.FusekiAutoModule;
+import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.rdf.model.Model;
 import org.apache.shiro.web.servlet.ShiroFilter;
-import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee10.servlet.SessionHandler;
+import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Fuseki Module for Apache Shiro
  */
-public class FMod_Shiro implements FusekiAutoModule {
+public class FMod_Shiro implements FusekiModule {
     // Assumes the whole system is "Shiro".
-    // No setup?
 
     public static final Logger shiroConfigLog = LoggerFactory.getLogger(Fuseki.PATH+".Shiro");
 
@@ -65,19 +64,12 @@ public class FMod_Shiro implements FusekiAutoModule {
      */
 
     @Override
-    public void start() {
-        Fuseki.serverLog.info("FMod Shiro");
-    }
-
-    @Override
-    public String name() { return "FMod Shiro"; }
+    public String name() { return "ModShiro"; }
 
     @Override public void prepare(FusekiServer.Builder serverBuilder, Set<String> datasetNames, Model configModel) {
-        if ( ! Objects.equals("disabled", Lib.getenv("FUSEKI_SHIRO") ) ) {
-            Filter filter = new FusekiShiroFilter();
-            // This is a "before" filter.
-            serverBuilder.addFilter("/*", filter);
-        }
+        Filter filter = new FusekiShiroFilter();
+        // This is a "before" filter.
+        serverBuilder.addFilter("/*", filter);
     }
 
     /**
@@ -86,7 +78,6 @@ public class FMod_Shiro implements FusekiAutoModule {
      * so it needs to trigger off servlet initialization.
      */
     private class FusekiShiroFilter extends ShiroFilter {
-        boolean runnng = false;
         @Override public void init() throws Exception {
             // Can not initShiro in serverBeforeStarting()
             // and serverAfterStarting() is too late.
