@@ -18,14 +18,26 @@
 
 package org.apache.jena.fuseki.mod.geosparql;
 
-import org.apache.jena.atlas.RuntimeIOException;
+import static java.lang.String.format;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.atlas.io.IOX;
 import org.apache.jena.atlas.lib.DateTimeUtils;
 import org.apache.jena.fuseki.FusekiException;
 import org.apache.jena.fuseki.servlets.BaseActionREST;
-import org.apache.jena.fuseki.servlets.GraphTarget;
 import org.apache.jena.fuseki.servlets.HttpAction;
-import org.apache.jena.fuseki.servlets.ServletOps;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
 import org.apache.jena.query.Dataset;
@@ -35,20 +47,6 @@ import org.apache.jena.riot.web.HttpNames;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.web.HttpSC;
 import org.slf4j.Logger;
-
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.List;
-
-import static java.lang.String.format;
-import static org.apache.jena.fuseki.servlets.GraphTarget.determineTarget;
 
 /**
  * Spatial index (re)computation service.
@@ -61,6 +59,33 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
         String[] uris = action.getRequest().getParameterValues(HttpNames.paramGraph);
 
         return uris == null ? Collections.emptyList() : List.of(uris);
+    }
+
+    /** Get request; currently always returns HTML */
+    @Override
+    protected void doGet(HttpAction action) {
+        // Serves the minimal graphql ui
+        String resourceName = "spatial-indexer/index.html";
+        String str = null;
+        try (InputStream in = SpatialIndexComputeService.class.getClassLoader().getResourceAsStream(resourceName)) {
+            str = IOUtils.toString(in, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new FusekiException(e);
+        }
+
+        if (str == null) {
+            action.setResponseStatus(HttpSC.INTERNAL_SERVER_ERROR_500);
+            action.setResponseContentType(WebContent.contentTypeTextPlain);
+            str = "Failed to load classpath resource " + resourceName;
+        } else {
+            action.setResponseStatus(HttpSC.OK_200);
+            action.setResponseContentType(WebContent.contentTypeHTML);
+        }
+        try (OutputStream out = action.getResponseOutputStream()) {
+            IOUtils.write(str, out, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new FusekiException(e);
+        }
     }
 
     @Override
