@@ -42,7 +42,7 @@ public class FMod_SpatialIndexer implements FusekiAutoModule {
 
     @Override
     public void start() {
-        Fuseki.configLog.info("Add spatial indexer operation into global registry.");
+        Fuseki.configLog.info(name() + ": Add spatial indexer operation into global registry.");
         spatialOperation = Operation.alloc("http://org.apache.jena/spatial-index-service",
                 "spatial-indexer",
                 "Spatial index computation service");
@@ -50,7 +50,7 @@ public class FMod_SpatialIndexer implements FusekiAutoModule {
 
     @Override
     public void prepare(FusekiServer.Builder builder, Set<String> datasetNames, Model configModel) {
-        Fuseki.configLog.info("Module adds spatial index servlet");
+        Fuseki.configLog.info(name() + ": Module adds spatial index servlet");
         builder.registerOperation(spatialOperation, new SpatialIndexComputeService());
         datasetNames.forEach(name -> builder.addEndpoint(name, "spatial", spatialOperation));
     }
@@ -83,6 +83,6 @@ public class FMod_SpatialIndexer implements FusekiAutoModule {
 
     @Override
     public void serverAfterStarting(FusekiServer server) {
-        Fuseki.configLog.info("Customized server start on port " + server.getHttpPort());
+        Fuseki.configLog.info(name() + ": Customized server start on port " + server.getHttpPort());
     }
 }

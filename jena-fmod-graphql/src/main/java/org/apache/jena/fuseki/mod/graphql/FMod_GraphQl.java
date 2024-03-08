@@ -42,7 +42,7 @@ public class FMod_GraphQl implements FusekiAutoModule {
 
     @Override
     public void start() {
-        Fuseki.configLog.info("Add GraphQL operation into global registry.");
+        Fuseki.configLog.info(name() + ": Add GraphQL operation into global registry.");
         graphQlQueryOperation = Operation.alloc("http://org.apache.jena/graphql-service",
                 "graphql",
                 "GraphQL query service");
@@ -50,7 +50,7 @@ public class FMod_GraphQl implements FusekiAutoModule {
 
     @Override
     public void prepare(FusekiServer.Builder builder, Set<String> datasetNames, Model configModel) {
-        Fuseki.configLog.info("Module adds GraphQL servlet");
+        Fuseki.configLog.info(name() + ": Module adds GraphQL servlet");
         builder.registerOperation(graphQlQueryOperation, new GraphQlQueryService());
         datasetNames.forEach(name -> builder.addEndpoint(name, "graphql", graphQlQueryOperation));
     }
@@ -83,6 +83,6 @@ public class FMod_GraphQl implements FusekiAutoModule {
 
     @Override
     public void serverAfterStarting(FusekiServer server) {
-        Fuseki.configLog.info("Customized server start on port " + server.getHttpPort());
+        Fuseki.configLog.info(name() + ": Customized server start on port " + server.getHttpPort());
     }
 }
