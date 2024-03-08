@@ -47,29 +47,33 @@
     
   </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-
-          <artifactSet>
-            <!-- Dependencies
-            <includes>
-              <include>...</include>
-            </includes>
-            -->
-            <excludes>
-            <exclude>org.apache.jena:jena-fuseki-main</exclude>
-            </excludes>
-          </artifactSet>
-
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
-
+  <profiles>
+    <profile>
+      <id>aksw</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <configuration>
+              <artifactSet>
+                <!-- Dependencies
+                <includes>
+                  <include>...</include>
+                </includes>
+                -->
+                <excludes>
+                  <exclude>org.apache.jena:jena-fuseki-main</exclude>
+                </excludes>
+              </artifactSet>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
