@@ -71,7 +71,7 @@ button {
     const params = new URLSearchParams({ "graph": "union", "commit": null });
     try {
       const response = await fetch(endpoint, { "method": "POST", "body": params, signal })
-      output.value = "Re-index complete. " + JSON.stringify(response);
+      output.value = "Re-index complete. " + await response.text();
     } catch (error) {
       output.value = `Error: ${error.message}`;
     }
