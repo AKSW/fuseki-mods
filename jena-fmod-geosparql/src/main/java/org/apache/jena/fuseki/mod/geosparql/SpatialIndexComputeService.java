@@ -111,6 +111,12 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
             if (index == null) { // no spatial index has been configured
                 action.log.error(format("[%d] no spatial index has been configured for the dataset", action.id));
             } else {
+                File oldLocation = index.getLocation();
+                if (oldLocation == null) {
+                    action.log.warn("Skipping write: Spatial index write requested, but the spatial index was configured without a file location" +
+                            " and no file param has been provided to the request neither. Skipping");
+                }
+
                 action.log.info(format("[%d] spatial index: computation started", action.id));
 
                 // check if graph based index has been configured on the dataset
@@ -130,14 +136,16 @@ public class SpatialIndexComputeService extends BaseActionREST { //ActionREST {
                         index = SpatialIndex.recomputeIndexForGraphs(index, ds, graphs);
                     }
                 }
+                index.setLocation(oldLocation);
 
                 if (commit != null) {
-                    File targetFile;
-                    if (spatialIndexFilePathStr != null) {
-                        targetFile = new File(spatialIndexFilePathStr);
-                    } else {
-                        targetFile = index.getLocation();
-                    }
+                    File targetFile = index.getLocation();
+//                    if (spatialIndexFilePathStr != null) {
+//                        targetFile = new File(spatialIndexFilePathStr);
+//                        index.setLocation(targetFile);
+//                    } else {
+//                        targetFile = index.getLocation();
+//                    }
                     if (targetFile != null) {
                         action.log.info("writing spatial index to disk at {}", targetFile.getAbsolutePath());
                         SpatialIndex.save(targetFile, index);
